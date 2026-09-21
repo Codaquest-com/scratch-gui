@@ -158,6 +158,15 @@ const buildConfig = baseConfig.clone()
                 from: 'extensions/**',
                 to: 'static',
                 context: 'src/examples'
+            },
+            {
+                // scratch-storage is consumed as a PREBUILT bundle, so ITS webpack
+                // runtime asks for `chunks/fetch-worker.<hash>.js` next to the entry
+                // and nothing in this build emits it. Without the file every library
+                // asset fetch hangs: "Choose a Sprite" closes and adds nothing.
+                from: 'chunks/*.{js,js.map}',
+                context: 'node_modules/scratch-storage/dist/web',
+                noErrorOnMissing: true
             }
         ]
     }));

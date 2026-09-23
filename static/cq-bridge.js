@@ -31,6 +31,10 @@
  *     "Ouvrir" link in Mes projets now points at), fetches that project's saved
  *     .sb3 back from the LMS and loads it into the VM before the child touches
  *     anything.
+ *   - AUTOSAVE. Runs the same save a few seconds after every edit and when the
+ *     tab is hidden, so closing the tab loses at most the last few seconds.
+ *     Needs `window.__SCRATCHGUI_STORE__` (src/lib/app-state-hoc.jsx) to clear
+ *     scratch-gui's "leave this page?" prompt once the work is saved.
  *
  * Why OPEN has to exist: scratch-gui always boots on the stock empty project.
  * Saving worked end to end, but nothing could ever load a project back in, so a
@@ -300,9 +304,11 @@
     // until then) but it would litter Mes projets with a blank duplicate, so
     // hold the button rather than explaining that afterwards.
     if (button) button.disabled = true;
+    opening = true;
     try {
       await openProjectInner(projectId, status);
     } finally {
+      opening = false;
       if (button) button.disabled = false;
     }
   }
@@ -369,14 +375,110 @@
 
   // ── Save flow ───────────────────────────────────────────────────────────
 
-  async function save(button, status) {
+  /**
+   * How long after the child's last edit the autosave fires. Short, because a
+   * tab can close at any moment and nothing sent from a closing page can carry
+   * a whole project: keepalive fetch and sendBeacon both cap the body at 64 KB,
+   * and an .sb3 is bigger than that. So the work has to be saved WHILE the
+   * page is alive, a few seconds after each change and again when the tab is
+   * hidden, never "on the way out".
+   */
+  var AUTOSAVE_DELAY_MS = 3000;
+
+  /**
+   * The longest an edit waits while the child keeps editing. The delay above
+   * restarts on every edit, so without a ceiling a child who never pauses for
+   * three seconds would never be saved. 20s keeps a busy session near three
+   * saves a minute, well inside the LMS's 60 per minute for project-save.
+   */
+  var AUTOSAVE_MAX_WAIT_MS = 20000;
+
+  /**
+   * True from the child's first edit until a save that started after it
+   * succeeds. Set only by the VM's PROJECT_CHANGED, which fires for edits and
+   * never for loads, so opening a project or "Fichier > Nouveau" is not work to
+   * save.
+   */
+  var unsavedChanges = false;
+  var unsavedSince = 0;
+
+  function markUnsaved() {
+    if (!unsavedChanges) unsavedSince = Date.now();
+    unsavedChanges = true;
+  }
+
+  /**
+   * The save in flight, so two saves can never race. Two concurrent first
+   * saves on an unattached canvas would each create a project row, and two
+   * concurrent updates can land out of order and leave the older canvas on top.
+   */
+  var saving = null;
+  var saveQueued = null;
+
+  var autosaveTimer = null;
+
+  /**
+   * Set when a save answers 401. Autosaving again would only repeat the same
+   * refusal after every edit, so it waits until a save the child asked for
+   * succeeds, which means they have signed in.
+   */
+  var autosaveSignedOut = false;
+
+  /** True while openProject is replacing the canvas. Nothing is saved then. */
+  var opening = false;
+
+  /**
+   * Tell scratch-gui the project on screen is saved, so its "leave this page?"
+   * prompt only fires for work that is not. Only when nothing changed since the
+   * save started: an edit made during the upload is still unsaved.
+   */
+  function markSavedInGui() {
+    var store = guiStore();
+    if (!store || typeof store.dispatch !== 'function') return;
+    store.dispatch({ type: 'scratch-gui/project-changed/SET_PROJECT_CHANGED', changed: false });
+  }
+
+  function scheduleAutosave(ui) {
+    clearTimeout(autosaveTimer);
+    if (autosaveSignedOut || opening || !unsavedChanges) return;
+    var ceiling = unsavedSince + AUTOSAVE_MAX_WAIT_MS - Date.now();
+    var delay = Math.max(0, Math.min(AUTOSAVE_DELAY_MS, ceiling));
+    autosaveTimer = setTimeout(function () { requestSave(ui, 'auto'); }, delay);
+  }
+
+  /**
+   * The one way into a save. A request that arrives while one is running waits
+   * for it and then runs again only if there is still something to save, or if
+   * the child pressed the button, so their click always gets its own answer.
+   */
+  function requestSave(ui, trigger) {
+    clearTimeout(autosaveTimer);
+    if (opening) return;
+    if (saving) {
+      if (saveQueued !== 'manual') saveQueued = trigger;
+      return;
+    }
+    saving = saveOnce(ui, trigger).then(function () {
+      saving = null;
+      var next = saveQueued;
+      saveQueued = null;
+      if (next === 'manual' || (next && unsavedChanges)) requestSave(ui, next);
+      else scheduleAutosave(ui);
+    });
+  }
+
+  /** Never rejects: every failure ends on the status pill and leaves the work marked unsaved. */
+  async function saveOnce(ui, trigger) {
+    var status = ui.status;
     var vm = window.ScratchVM;
     if (!vm) {
       setStatus(status, 'Editeur pas encore prêt', 'error');
       return;
     }
-    button.disabled = true;
-    setStatus(status, 'Sauvegarde…', 'progress');
+    if (trigger === 'manual') setStatus(status, 'Sauvegarde…', 'progress');
+    // Cleared BEFORE the snapshot, so an edit made while this save is uploading
+    // sets it again and is saved by the next one instead of being lost.
+    unsavedChanges = false;
 
     try {
       // saveProjectSb3 returns a Promise<Blob> in scratch-vm 0.2+.
@@ -397,6 +499,8 @@
         body: form,
       });
       if (res.status === 401) {
+        markUnsaved();
+        autosaveSignedOut = true;
         setStatus(status, 'Connecte-toi sur Codaquest pour sauvegarder', 'error');
         // The user may have switched accounts, so this canvas no longer belongs
         // to whoever signs in next.
@@ -414,27 +518,55 @@
         // or a reload sends the child back to the project they no longer own.
         setTarget(json.id);
       }
+      autosaveSignedOut = false;
+      if (!unsavedChanges) markSavedInGui();
       // `forked: true` means the id we sent was not writable (deleted, someone
       // else's, not a Scratch project) and the work landed in a NEW project.
       // Say so, otherwise the child looks for their changes in the old one.
-      setStatus(
-        status,
-        json && json.forked ? 'Sauvegardé dans un nouveau projet' : 'Sauvegardé dans Mes projets',
-        'ok'
-      );
+      var message = json && json.forked ? 'Sauvegardé dans un nouveau projet'
+        : trigger === 'auto' ? 'Sauvegardé automatiquement'
+        : 'Sauvegardé dans Mes projets';
+      setStatus(status, message, 'ok');
     } catch (err) {
+      markUnsaved();
       setStatus(status, 'Echec : ' + (err && err.message ? err.message : err), 'error');
     } finally {
-      button.disabled = false;
       clearStatusLater(status);
     }
+  }
+
+  /**
+   * Save the child's work without them asking: a few seconds after they stop
+   * editing, and at once when the tab is hidden (switching tabs, minimising,
+   * and the first step of closing it). A load of any kind replaces the canvas,
+   * so whatever was pending belonged to a project that is no longer on screen.
+   */
+  function watchForChanges(vm, ui) {
+    if (!vm || typeof vm.on !== 'function') return;
+    vm.on('PROJECT_CHANGED', function () {
+      if (opening) return;
+      markUnsaved();
+      scheduleAutosave(ui);
+    });
+    vm.runtime.on('PROJECT_LOADED', function () {
+      unsavedChanges = false;
+      clearTimeout(autosaveTimer);
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden' && unsavedChanges && !autosaveSignedOut) {
+        requestSave(ui, 'auto');
+      }
+    });
   }
 
   // ── UI: floating button + status pill ───────────────────────────────────
 
   function mountButton() {
     if (document.getElementById('cq-save-button')) {
-      return document.getElementById('cq-save-status');
+      return {
+        button: document.getElementById('cq-save-button'),
+        status: document.getElementById('cq-save-status'),
+      };
     }
 
     var style = document.createElement('style');
@@ -458,24 +590,29 @@
     button.id = 'cq-save-button';
     button.type = 'button';
     button.textContent = 'Sauvegarder dans Mes projets';
-    button.addEventListener('click', function () { save(button, status); });
+    var ui = { button: button, status: status };
+    button.addEventListener('click', function () { requestSave(ui, 'manual'); });
     wrap.appendChild(status);
     wrap.appendChild(button);
     document.body.appendChild(wrap);
-    return status;
+    return ui;
   }
 
   // ── Boot ────────────────────────────────────────────────────────────────
 
   function boot() {
     clearLegacyProjectId();
-    var status = mountButton();
-    // Warms up the VM reference, and attaches the watcher that drops our write
-    // target the moment scratch-gui loads something else into the editor.
-    waitForVM().then(forgetTargetOnForeignLoad);
+    var ui = mountButton();
+    // Warms up the VM reference, attaches the watcher that drops our write
+    // target the moment scratch-gui loads something else into the editor, and
+    // starts autosaving the child's edits.
+    waitForVM().then(function (vm) {
+      forgetTargetOnForeignLoad(vm);
+      watchForChanges(vm, ui);
+    });
     var projectId = requestedProjectId();
     if (projectId) {
-      openProject(projectId, status, document.getElementById('cq-save-button'));
+      openProject(projectId, ui.status, ui.button);
     }
     // Otherwise this session starts unattached, so the first save creates a new
     // project and later saves in the same session update it.

@@ -83,6 +83,12 @@ const AppStateHOC = function (WrappedComponent, localesOnly) {
                 initialState,
                 enhancer
             );
+            // Codaquest LMS bridge: cq-bridge.js reads the project title from this store, and
+            // marks the project unchanged after an autosave so the leave-page prompt only
+            // guards work that is not saved yet.
+            if (!localesOnly && typeof window !== 'undefined') {
+                window.__SCRATCHGUI_STORE__ = this.store;
+            }
         }
         componentDidUpdate (prevProps) {
             if (localesOnly) return;

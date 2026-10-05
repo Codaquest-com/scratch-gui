@@ -45,6 +45,11 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         }
     })
     .addModuleRule({
+        // Codaquest offers French and English only, so drop every other translation
+        test: /(scratch-l10n[\\/]locales[\\/]editor-msgs|scratch-blocks[\\/]msg[\\/]scratch_msgs)\.js$/,
+        use: path.resolve(__dirname, 'scripts/cq-keep-locales-loader.js')
+    })
+    .addModuleRule({
         test: /\.(svg|png|wav|mp3|gif|jpg)$/,
         resourceQuery: /^$/, // reject any query string
         type: 'asset' // let webpack decide on the best type of asset

@@ -67,8 +67,10 @@ export default appTarget => {
             /> :
             // Codaquest: no backpack, Share, project page, account or logo link.
             // None of them work outside scratch.mit.edu, and they distract children.
+            // No colour mode either; the system contrast preference still applies.
             <WrappedGui
                 canEditTitle
+                canChangeTheme={false}
                 canSave={false}
             />,
         appTarget);

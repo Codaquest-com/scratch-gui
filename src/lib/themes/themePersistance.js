@@ -1,5 +1,3 @@
-import cookie from 'cookie';
-
 import {DEFAULT_THEME, HIGH_CONTRAST_THEME} from '.';
 
 const PREFERS_HIGH_CONTRAST_QUERY = '(prefers-contrast: more)';
@@ -14,15 +12,9 @@ const systemPreferencesTheme = () => {
     return DEFAULT_THEME;
 };
 
-const detectTheme = () => {
-    const obj = cookie.parse(document.cookie) || {};
-    const themeCookie = obj.scratchtheme;
-
-    if (isValidTheme(themeCookie)) return themeCookie;
-
-    // No cookie set. Fall back to system preferences
-    return systemPreferencesTheme();
-};
+// Codaquest hides the colour mode menu, so a theme cookie left by an earlier
+// visit could never be switched back. Follow the system preference only.
+const detectTheme = () => systemPreferencesTheme();
 
 const persistTheme = theme => {
     if (!isValidTheme(theme)) {

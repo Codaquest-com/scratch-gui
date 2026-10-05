@@ -9,6 +9,10 @@ import extensionLibraryContent from '../lib/libraries/extensions/index.jsx';
 import LibraryComponent from '../components/library/library.jsx';
 import extensionIcon from '../components/action-menu/icon--sprite.svg';
 
+// Codaquest lessons only use Pen. Other extensions stay in the data so an older
+// project that already uses one still loads, but they are no longer offered.
+const CQ_OFFERED_EXTENSIONS = ['pen'];
+
 const messages = defineMessages({
     extensionTitle: {
         defaultMessage: 'Choose an Extension',
@@ -47,10 +51,12 @@ class ExtensionLibrary extends React.PureComponent {
         }
     }
     render () {
-        const extensionLibraryThumbnailData = extensionLibraryContent.map(extension => ({
-            rawURL: extension.iconURL || extensionIcon,
-            ...extension
-        }));
+        const extensionLibraryThumbnailData = extensionLibraryContent
+            .filter(extension => CQ_OFFERED_EXTENSIONS.includes(extension.extensionId))
+            .map(extension => ({
+                rawURL: extension.iconURL || extensionIcon,
+                ...extension
+            }));
         return (
             <LibraryComponent
                 data={extensionLibraryThumbnailData}

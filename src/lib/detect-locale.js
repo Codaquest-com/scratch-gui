@@ -9,10 +9,11 @@ import queryString from 'query-string';
  * look for language setting in the browser. Check against supported locales.
  * If there's a parameter in the URL, override the browser setting
  * @param {Array.string} supportedLocales An array of supported locale codes.
+ * @param {string} [defaultLocale] The locale used when neither the browser nor the URL picks a supported one.
  * @return {string} the preferred locale
  */
-const detectLocale = supportedLocales => {
-    let locale = 'en'; // default
+const detectLocale = (supportedLocales, defaultLocale = 'en') => {
+    let locale = defaultLocale;
     let browserLocale = window.navigator.userLanguage || window.navigator.language;
     browserLocale = browserLocale.toLowerCase();
     // try to set locale from browserLocale

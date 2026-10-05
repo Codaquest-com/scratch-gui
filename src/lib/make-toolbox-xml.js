@@ -785,7 +785,9 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
     const sensingXML = moveCategory('sensing') || sensing(isInitialSetup, isStage, targetId, colors.sensing);
     const operatorsXML = moveCategory('operators') || operators(isInitialSetup, isStage, targetId, colors.operators);
     const variablesXML = moveCategory('data') || variables(isInitialSetup, isStage, targetId, colors.data);
-    const myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
+    // Codaquest lessons never use custom blocks, so My Blocks is not shown. Taking
+    // 'procedures' out of categoriesXML still keeps it from showing up below.
+    moveCategory('procedures');
 
     const everything = [
         xmlOpen,
@@ -796,8 +798,7 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
         controlXML, gap,
         sensingXML, gap,
         operatorsXML, gap,
-        variablesXML, gap,
-        myBlocksXML
+        variablesXML
     ];
 
     for (const extensionCategory of categoriesXML) {

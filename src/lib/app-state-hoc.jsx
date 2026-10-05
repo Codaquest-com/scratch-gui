@@ -8,8 +8,8 @@ import localesReducer, {initLocale, localesInitialState} from '../reducers/local
 
 import {setPlayer, setFullScreen} from '../reducers/mode.js';
 
-import locales from 'scratch-l10n';
 import {detectLocale} from './detect-locale';
+import {CQ_DEFAULT_LOCALE, CQ_LOCALE_CODES} from './cq-locales.js';
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
@@ -31,7 +31,7 @@ const AppStateHOC = function (WrappedComponent, localesOnly) {
             let enhancer;
 
             let initializedLocales = localesInitialState;
-            const locale = detectLocale(Object.keys(locales));
+            const locale = detectLocale(CQ_LOCALE_CODES, CQ_DEFAULT_LOCALE);
             if (locale !== 'en') {
                 initializedLocales = initLocale(initializedLocales, locale);
             }

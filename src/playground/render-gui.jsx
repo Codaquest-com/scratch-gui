@@ -7,10 +7,6 @@ import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import log from '../lib/log.js';
 
-const onClickLogo = () => {
-    window.location = 'https://scratch.mit.edu';
-};
-
 const handleTelemetryModalCancel = () => {
     log('User canceled telemetry modal');
 };
@@ -38,10 +34,6 @@ export default appTarget => {
         AppStateHOC,
         HashParserHOC
     )(GUI);
-
-    // TODO a hack for testing the backpack, allow backpack host to be set by url param
-    const backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);
-    const backpackHost = backpackHostMatches ? backpackHostMatches[1] : null;
 
     const scratchDesktopMatches = window.location.href.match(/[?&]isScratchDesktop=([^&]+)/);
     let simulateScratchDesktop;
@@ -73,13 +65,16 @@ export default appTarget => {
                 onTelemetryModalOptIn={handleTelemetryModalOptIn}
                 onTelemetryModalOptOut={handleTelemetryModalOptOut}
             /> :
+            // Codaquest: no backpack, Share, project page, account or logo link.
+            // None of them work outside scratch.mit.edu, and they distract children.
+            // No colour mode either; the system contrast preference still applies.
+            // No File menu: cq-bridge.js puts a download button at the end of the bar.
+            // No title field: children name projects in Mes projets, and the field
+            // stopped renaming a project after its first save anyway.
             <WrappedGui
-                canEditTitle
-                backpackVisible
-                showComingSoon
-                backpackHost={backpackHost}
+                canChangeTheme={false}
+                canManageFiles={false}
                 canSave={false}
-                onClickLogo={onClickLogo}
             />,
         appTarget);
 };

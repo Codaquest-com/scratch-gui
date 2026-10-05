@@ -134,12 +134,14 @@ describe('themes', () => {
     });
 
     describe('theme persistance', () => {
-        test('returns the theme stored in a cookie', () => {
+        // Codaquest hides the colour mode menu, so a leftover cookie must not
+        // lock a child into a theme they can no longer switch off.
+        test('ignores a theme cookie and follows the system preference', () => {
             window.document.cookie = `scratchtheme=${HIGH_CONTRAST_THEME}`;
 
             const theme = detectTheme();
 
-            expect(theme).toEqual(HIGH_CONTRAST_THEME);
+            expect(theme).toEqual(DEFAULT_THEME);
         });
 
         test('returns the system theme when no cookie', () => {

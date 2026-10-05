@@ -69,8 +69,9 @@ export default appTarget => {
             // None of them work outside scratch.mit.edu, and they distract children.
             // No colour mode either; the system contrast preference still applies.
             // No File menu: cq-bridge.js puts a download button at the end of the bar.
+            // No title field: children name projects in Mes projets, and the field
+            // stopped renaming a project after its first save anyway.
             <WrappedGui
-                canEditTitle
                 canChangeTheme={false}
                 canManageFiles={false}
                 canSave={false}

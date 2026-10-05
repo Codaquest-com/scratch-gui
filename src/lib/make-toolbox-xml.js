@@ -486,9 +486,6 @@ const sensing = function (isInitialSetup, isStage, targetId, colors) {
         <block type="sensing_mousex"/>
         <block type="sensing_mousey"/>
         ${blockSeparator}
-        <block id="timer" type="sensing_timer"/>
-        <block type="sensing_resettimer"/>
-        ${blockSeparator}
         <block id="of" type="sensing_of">
             <value name="OBJECT">
                 <shadow id="sensing_of_object_menu" type="sensing_of_object_menu"/>

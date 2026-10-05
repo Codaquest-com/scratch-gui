@@ -7,6 +7,11 @@ import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import log from '../lib/log.js';
 
+// The logo takes the child back to Codabox, never to scratch.mit.edu.
+const onClickLogo = () => {
+    window.location = 'https://codabox.codaquest.com/';
+};
+
 const handleTelemetryModalCancel = () => {
     log('User canceled telemetry modal');
 };
@@ -65,7 +70,7 @@ export default appTarget => {
                 onTelemetryModalOptIn={handleTelemetryModalOptIn}
                 onTelemetryModalOptOut={handleTelemetryModalOptOut}
             /> :
-            // Codaquest: no backpack, Share, project page, account or logo link.
+            // Codaquest: no backpack, Share, project page or account.
             // None of them work outside scratch.mit.edu, and they distract children.
             // No colour mode either; the system contrast preference still applies.
             // No File menu: cq-bridge.js puts a download button at the end of the bar.
@@ -75,6 +80,7 @@ export default appTarget => {
                 canChangeTheme={false}
                 canManageFiles={false}
                 canSave={false}
+                onClickLogo={onClickLogo}
             />,
         appTarget);
 };

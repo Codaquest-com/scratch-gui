@@ -68,9 +68,11 @@ export default appTarget => {
             // Codaquest: no backpack, Share, project page, account or logo link.
             // None of them work outside scratch.mit.edu, and they distract children.
             // No colour mode either; the system contrast preference still applies.
+            // No File menu: cq-bridge.js puts a download button at the end of the bar.
             <WrappedGui
                 canEditTitle
                 canChangeTheme={false}
+                canManageFiles={false}
                 canSave={false}
             />,
         appTarget);

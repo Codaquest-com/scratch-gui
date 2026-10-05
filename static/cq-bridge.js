@@ -559,6 +559,36 @@
     });
   }
 
+  // ── Download to the computer ────────────────────────────────────────────
+  // Replaces scratch-gui's File > "Save to your computer", which the fork hides
+  // together with the rest of the File menu.
+
+  function downloadFileName() {
+    var name = readTitle().replace(/[\\/:*?"<>|]+/g, ' ').trim();
+    return (name || 'Projet Scratch') + '.sb3';
+  }
+
+  async function downloadToComputer(status) {
+    var vm = window.ScratchVM;
+    if (!vm) {
+      setStatus(status, 'Editeur pas encore prêt', 'error');
+      return;
+    }
+    try {
+      var blob = await vm.saveProjectSb3();
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = downloadFileName();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    } catch (err) {
+      setStatus(status, 'Téléchargement impossible', 'error');
+    }
+  }
+
   // ── UI: floating button + status pill ───────────────────────────────────
 
   function mountButton() {
@@ -579,7 +609,9 @@
       '#cq-save-status:empty{display:none;}' +
       '#cq-save-status[data-kind="ok"]{background:#e8f6ee;color:#1a7f37;}' +
       '#cq-save-status[data-kind="error"]{background:#fdecea;color:#a3261a;}' +
-      '#cq-save-status[data-kind="progress"]{background:#eef4ff;color:#1d4ed8;}';
+      '#cq-save-status[data-kind="progress"]{background:#eef4ff;color:#1d4ed8;}' +
+      '#cq-download-button{display:flex;align-items:center;justify-content:center;width:36px;height:34px;background:rgba(255,255,255,.15);border:0;border-radius:8px;cursor:pointer;padding:0;}' +
+      '#cq-download-button:hover{background:rgba(255,255,255,.3);}';
     document.head.appendChild(style);
 
     var wrap = document.createElement('div');
@@ -592,8 +624,19 @@
     button.textContent = 'Sauvegarder dans Mes projets';
     var ui = { button: button, status: status };
     button.addEventListener('click', function () { requestSave(ui, 'manual'); });
+    var download = document.createElement('button');
+    download.id = 'cq-download-button';
+    download.type = 'button';
+    download.title = 'Télécharger sur mon ordinateur';
+    download.setAttribute('aria-label', 'Télécharger sur mon ordinateur');
+    download.innerHTML =
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>';
+    download.addEventListener('click', function () { downloadToComputer(status); });
     wrap.appendChild(status);
     wrap.appendChild(button);
+    wrap.appendChild(download);
     document.body.appendChild(wrap);
     return ui;
   }

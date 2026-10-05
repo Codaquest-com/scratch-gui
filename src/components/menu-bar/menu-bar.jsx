@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import {connect} from 'react-redux';
 import {compose} from 'redux';
-import {defineMessages, FormattedMessage, injectIntl, intlShape} from 'react-intl';
+import {FormattedMessage, injectIntl, intlShape} from 'react-intl';
 import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import bowser from 'bowser';
@@ -14,7 +14,6 @@ import Button from '../button/button.jsx';
 import CommunityButton from './community-button.jsx';
 import ShareButton from './share-button.jsx';
 import {ComingSoonTooltip} from '../coming-soon/coming-soon.jsx';
-import Divider from '../divider/divider.jsx';
 import SaveStatus from './save-status.jsx';
 import ProjectWatcher from '../../containers/project-watcher.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
@@ -29,7 +28,6 @@ import TurboMode from '../../containers/turbo-mode.jsx';
 import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
 import SettingsMenu from './settings-menu.jsx';
 
-import {openTipsLibrary, openDebugModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
 import {
     isTimeTravel220022BC,
@@ -76,7 +74,6 @@ import collectMetadata from '../../lib/collect-metadata';
 
 import styles from './menu-bar.css';
 
-import helpIcon from '../../lib/assets/icon--tutorials.svg';
 import mystuffIcon from './icon--mystuff.png';
 import profileIcon from './icon--profile.png';
 import remixIcon from './icon--remix.svg';
@@ -84,7 +81,6 @@ import dropdownCaret from './dropdown-caret.svg';
 import aboutIcon from './icon--about.svg';
 import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
-import debugIcon from '../debug-modal/icons/icon--debug.svg';
 
 import scratchLogo from './scratch-logo.svg';
 import ninetiesLogo from './nineties_logo.svg';
@@ -94,18 +90,6 @@ import oldtimeyLogo from './oldtimey-logo.svg';
 
 import sharedMessages from '../../lib/shared-messages';
 
-const ariaMessages = defineMessages({
-    tutorials: {
-        id: 'gui.menuBar.tutorialsLibrary',
-        defaultMessage: 'Tutorials',
-        description: 'accessibility text for the tutorials button'
-    },
-    debug: {
-        id: 'gui.menuBar.debug',
-        defaultMessage: 'Debug',
-        description: 'accessibility text for the debug button'
-    }
-});
 
 const MenuBarItemTooltip = ({
     children,
@@ -692,37 +676,6 @@ class MenuBar extends React.Component {
                             </MenuBarItemTooltip>
                         ) : [])}
                     </div>
-                    <Divider className={classNames(styles.divider)} />
-                    <div className={styles.fileGroup}>
-                        <div
-                            aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
-                            className={
-                                classNames(styles.menuBarItem, styles.noOffset, styles.hoverable, 'tutorials-button')
-                            }
-                            onClick={this.props.onOpenTipLibrary}
-                        >
-                            <img
-                                className={styles.helpIcon}
-                                src={helpIcon}
-                            />
-                            <span className={styles.tutorialsLabel}>
-                                <FormattedMessage {...ariaMessages.tutorials} />
-                            </span>
-                        </div>
-                        <div
-                            aria-label={this.props.intl.formatMessage(ariaMessages.debug)}
-                            className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
-                            onClick={this.props.onOpenDebugModal}
-                        >
-                            <img
-                                className={styles.helpIcon}
-                                src={debugIcon}
-                            />
-                            <span className={styles.debugLabel}>
-                                <FormattedMessage {...ariaMessages.debug} />
-                            </span>
-                        </div>
-                    </div>
                 </div>
 
                 {/* show the proper UI in the account menu, given whether the user is
@@ -879,7 +832,6 @@ MenuBar.propTypes = {
     canShare: PropTypes.bool,
     className: PropTypes.string,
     confirmReadyToReplaceProject: PropTypes.func,
-    currentLocale: PropTypes.string.isRequired,
     editMenuOpen: PropTypes.bool,
     enableCommunity: PropTypes.bool,
     fileMenuOpen: PropTypes.bool,
@@ -892,10 +844,7 @@ MenuBar.propTypes = {
     locale: PropTypes.string.isRequired,
     loginMenuOpen: PropTypes.bool,
     logo: PropTypes.string,
-    mode1920: PropTypes.bool,
-    mode1990: PropTypes.bool,
     mode2020: PropTypes.bool,
-    mode220022BC: PropTypes.bool,
     modeMenuOpen: PropTypes.bool,
     modeNow: PropTypes.bool,
     onClickAbout: PropTypes.oneOfType([
@@ -920,8 +869,6 @@ MenuBar.propTypes = {
     onClickSettings: PropTypes.func,
     onLogOut: PropTypes.func,
     onOpenRegistration: PropTypes.func,
-    onOpenTipLibrary: PropTypes.func,
-    onOpenDebugModal: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
     onRequestCloseAbout: PropTypes.func,
     onRequestCloseAccount: PropTypes.func,
@@ -935,7 +882,6 @@ MenuBar.propTypes = {
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
-    onToggleLoginOpen: PropTypes.func,
     projectTitle: PropTypes.string,
     renderLogin: PropTypes.func,
     sessionExists: PropTypes.bool,
@@ -943,7 +889,6 @@ MenuBar.propTypes = {
     shouldSaveBeforeTransition: PropTypes.func,
     showComingSoon: PropTypes.bool,
     username: PropTypes.string,
-    userOwnsProject: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
@@ -984,8 +929,6 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => ({
     autoUpdateProject: () => dispatch(autoUpdateProject()),
-    onOpenTipLibrary: () => dispatch(openTipsLibrary()),
-    onOpenDebugModal: () => dispatch(openDebugModal()),
     onClickAccount: () => dispatch(openAccountMenu()),
     onRequestCloseAccount: () => dispatch(closeAccountMenu()),
     onClickFile: () => dispatch(openFileMenu()),

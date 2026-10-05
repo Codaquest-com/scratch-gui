@@ -362,14 +362,6 @@ const events = function (isInitialSetup, isStage, targetId, colors) {
         <block type="event_whenbackdropswitchesto">
         </block>
         ${blockSeparator}
-        <block type="event_whengreaterthan">
-            <value name="VALUE">
-                <shadow type="math_number">
-                    <field name="NUM">10</field>
-                </shadow>
-            </value>
-        </block>
-        ${blockSeparator}
         <block type="event_whenbroadcastreceived">
         </block>
         <block type="event_broadcast">
@@ -493,13 +485,6 @@ const sensing = function (isInitialSetup, isStage, targetId, colors) {
         <block type="sensing_mousedown"/>
         <block type="sensing_mousex"/>
         <block type="sensing_mousey"/>
-        ${isStage ? '' : `
-            ${blockSeparator}
-            '<block type="sensing_setdragmode" id="sensing_setdragmode"></block>'+
-            ${blockSeparator}
-        `}
-        ${blockSeparator}
-        <block id="loudness" type="sensing_loudness"/>
         ${blockSeparator}
         <block id="timer" type="sensing_timer"/>
         <block type="sensing_resettimer"/>
@@ -509,11 +494,6 @@ const sensing = function (isInitialSetup, isStage, targetId, colors) {
                 <shadow id="sensing_of_object_menu" type="sensing_of_object_menu"/>
             </value>
         </block>
-        ${blockSeparator}
-        <block id="current" type="sensing_current"/>
-        <block type="sensing_dayssince2000"/>
-        ${blockSeparator}
-        <block type="sensing_username"/>
         ${categorySeparator}
     </category>
     `;
@@ -678,34 +658,6 @@ const operators = function (isInitialSetup, isStage, targetId, colors) {
               </value>
             </block>
         `}
-        ${blockSeparator}
-        <block type="operator_mod">
-            <value name="NUM1">
-                <shadow type="math_number">
-                    <field name="NUM"/>
-                </shadow>
-            </value>
-            <value name="NUM2">
-                <shadow type="math_number">
-                    <field name="NUM"/>
-                </shadow>
-            </value>
-        </block>
-        <block type="operator_round">
-            <value name="NUM">
-                <shadow type="math_number">
-                    <field name="NUM"/>
-                </shadow>
-            </value>
-        </block>
-        ${blockSeparator}
-        <block type="operator_mathop">
-            <value name="NUM">
-                <shadow type="math_number">
-                    <field name="NUM"/>
-                </shadow>
-            </value>
-        </block>
         ${categorySeparator}
     </category>
     `;
@@ -755,10 +707,11 @@ const xmlClose = '</xml>';
  * @param {?string} backdropName - The name of the default selected backdrop dropdown.
  * @param {?string} soundName -  The name of the default selected sound dropdown.
  * @param {?object} colors - The colors for the theme.
+ * @param {?boolean} showSound - Codaquest: whether the child has added the Sound extension.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
 const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categoriesXML = [],
-    costumeName = '', backdropName = '', soundName = '', colors = defaultColors) {
+    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, showSound = false) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
 
@@ -793,13 +746,15 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
         xmlOpen,
         motionXML, gap,
         looksXML, gap,
-        soundXML, gap,
         eventsXML, gap,
         controlXML, gap,
         sensingXML, gap,
         operatorsXML, gap,
         variablesXML
     ];
+
+    // Codaquest: Sound is offered as an extension, so it sits with them at the bottom.
+    if (showSound) everything.push(gap, soundXML);
 
     for (const extensionCategory of categoriesXML) {
         everything.push(gap, extensionCategory.xml);

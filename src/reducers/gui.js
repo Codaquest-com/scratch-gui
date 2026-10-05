@@ -5,6 +5,7 @@ import cardsReducer, {cardsInitialState} from './cards';
 import colorPickerReducer, {colorPickerInitialState} from './color-picker';
 import connectionModalReducer, {connectionModalInitialState} from './connection-modal';
 import customProceduresReducer, {customProceduresInitialState} from './custom-procedures';
+import cqSoundModReducer, {cqSoundModInitialState} from './cq-sound-mod';
 import blockDragReducer, {blockDragInitialState} from './block-drag';
 import editorTabReducer, {editorTabInitialState} from './editor-tab';
 import hoveredTargetReducer, {hoveredTargetInitialState} from './hovered-target';
@@ -42,6 +43,7 @@ const guiInitialState = {
     colorPicker: colorPickerInitialState,
     connectionModal: connectionModalInitialState,
     customProcedures: customProceduresInitialState,
+    cqSoundMod: cqSoundModInitialState,
     editorTab: editorTabInitialState,
     mode: modeInitialState,
     hoveredTarget: hoveredTargetInitialState,
@@ -143,6 +145,7 @@ const guiReducer = combineReducers({
     colorPicker: colorPickerReducer,
     connectionModal: connectionModalReducer,
     customProcedures: customProceduresReducer,
+    cqSoundMod: cqSoundModReducer,
     editorTab: editorTabReducer,
     mode: modeReducer,
     hoveredTarget: hoveredTargetReducer,

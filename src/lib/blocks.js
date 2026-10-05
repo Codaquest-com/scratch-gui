@@ -355,5 +355,16 @@ export default function (vm, useCatBlocks) {
         return true;
     };
 
+    // Codaquest: no "Make a List" button. Lessons never use lists, and a project
+    // that already has one still shows its list blocks.
+    if (!ScratchBlocks.DataCategory.cqNoListButton) {
+        const addCreateButton = ScratchBlocks.DataCategory.addCreateButton;
+        ScratchBlocks.DataCategory.addCreateButton = function (xmlList, workspace, type) {
+            if (type === 'LIST') return;
+            addCreateButton(xmlList, workspace, type);
+        };
+        ScratchBlocks.DataCategory.cqNoListButton = true;
+    }
+
     return ScratchBlocks;
 }

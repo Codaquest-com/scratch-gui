@@ -120,7 +120,9 @@ const GUIComponent = props => {
         onTelemetryModalOptIn,
         onTelemetryModalOptOut,
         showComingSoon,
+        showMenuBar,
         soundsTabVisible,
+        cqSoundMod,
         stageSizeMode,
         targetIsStage,
         telemetryModalVisible,
@@ -218,7 +220,7 @@ const GUIComponent = props => {
                         onRequestClose={onRequestCloseBackdropLibrary}
                     />
                 ) : null}
-                <MenuBar
+                {showMenuBar ? <MenuBar
                     accountNavOpen={accountNavOpen}
                     authorId={authorId}
                     authorThumbnailUrl={authorThumbnailUrl}
@@ -250,8 +252,12 @@ const GUIComponent = props => {
                     onShare={onShare}
                     onStartSelectingFileUpload={onStartSelectingFileUpload}
                     onToggleLoginOpen={onToggleLoginOpen}
-                />
-                <Box className={styles.bodyWrapper}>
+                /> : null}
+                <Box
+                    className={classNames(styles.bodyWrapper, {
+                        [styles.bodyWrapperFull]: !showMenuBar
+                    })}
+                >
                     <Box className={styles.flexWrapper}>
                         <Box className={styles.editorWrapper}>
                             <Tabs
@@ -296,20 +302,23 @@ const GUIComponent = props => {
                                             />
                                         )}
                                     </Tab>
-                                    <Tab
-                                        className={tabClassNames.tab}
-                                        onClick={onActivateSoundsTab}
-                                    >
-                                        <img
-                                            draggable={false}
-                                            src={soundsIcon}
-                                        />
-                                        <FormattedMessage
-                                            defaultMessage="Sounds"
-                                            description="Button to get to the sounds panel"
-                                            id="gui.gui.soundsTab"
-                                        />
-                                    </Tab>
+                                    {/* Codaquest: no Sounds tab until the Sound extension is added. */}
+                                    {cqSoundMod ? (
+                                        <Tab
+                                            className={tabClassNames.tab}
+                                            onClick={onActivateSoundsTab}
+                                        >
+                                            <img
+                                                draggable={false}
+                                                src={soundsIcon}
+                                            />
+                                            <FormattedMessage
+                                                defaultMessage="Sounds"
+                                                description="Button to get to the sounds panel"
+                                                id="gui.gui.soundsTab"
+                                            />
+                                        </Tab>
+                                    ) : null}
                                 </TabList>
                                 <TabPanel className={tabClassNames.tabPanel}>
                                     <Box className={styles.blocksWrapper}>
@@ -346,9 +355,11 @@ const GUIComponent = props => {
                                 <TabPanel className={tabClassNames.tabPanel}>
                                     {costumesTabVisible ? <CostumeTab vm={vm} /> : null}
                                 </TabPanel>
-                                <TabPanel className={tabClassNames.tabPanel}>
-                                    {soundsTabVisible ? <SoundTab vm={vm} /> : null}
-                                </TabPanel>
+                                {cqSoundMod ? (
+                                    <TabPanel className={tabClassNames.tabPanel}>
+                                        {soundsTabVisible ? <SoundTab vm={vm} /> : null}
+                                    </TabPanel>
+                                ) : null}
                             </Tabs>
                             {backpackVisible ? (
                                 <Backpack host={backpackHost} />
@@ -439,7 +450,9 @@ GUIComponent.propTypes = {
     onToggleLoginOpen: PropTypes.func,
     renderLogin: PropTypes.func,
     showComingSoon: PropTypes.bool,
+    showMenuBar: PropTypes.bool,
     soundsTabVisible: PropTypes.bool,
+    cqSoundMod: PropTypes.bool,
     stageSizeMode: PropTypes.oneOf(Object.keys(STAGE_SIZE_MODES)),
     targetIsStage: PropTypes.bool,
     telemetryModalVisible: PropTypes.bool,
@@ -468,6 +481,7 @@ GUIComponent.defaultProps = {
     isTotallyNormal: false,
     loading: false,
     showComingSoon: false,
+    showMenuBar: true,
     stageSizeMode: STAGE_SIZE_MODES.large
 };
 

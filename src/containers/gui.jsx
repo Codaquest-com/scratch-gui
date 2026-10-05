@@ -169,6 +169,7 @@ const mapStateToProps = state => {
         loadingStateVisible: state.scratchGui.modals.loadingProject,
         projectId: state.scratchGui.projectState.projectId,
         soundsTabVisible: state.scratchGui.editorTab.activeTabIndex === SOUNDS_TAB_INDEX,
+        cqSoundMod: state.scratchGui.cqSoundMod,
         targetIsStage: (
             state.scratchGui.targets.stage &&
             state.scratchGui.targets.stage.id === state.scratchGui.targets.editingTarget

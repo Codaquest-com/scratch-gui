@@ -14,7 +14,6 @@ import styles from './sprite-selector.css';
 import fileUploadIcon from '../action-menu/icon--file-upload.svg';
 import paintIcon from '../action-menu/icon--paint.svg';
 import spriteIcon from '../action-menu/icon--sprite.svg';
-import surpriseIcon from '../action-menu/icon--surprise.svg';
 import searchIcon from '../action-menu/icon--search.svg';
 
 const messages = defineMessages({
@@ -27,11 +26,6 @@ const messages = defineMessages({
         id: 'gui.spriteSelector.addSpriteFromPaint',
         description: 'Button to add a sprite in the target pane from paint',
         defaultMessage: 'Paint'
-    },
-    addSpriteFromSurprise: {
-        id: 'gui.spriteSelector.addSpriteFromSurprise',
-        description: 'Button to add a random sprite in the target pane',
-        defaultMessage: 'Surprise'
     },
     addSpriteFromFile: {
         id: 'gui.spriteSelector.addSpriteFromFile',
@@ -61,7 +55,6 @@ const SpriteSelectorComponent = function (props) {
         onPaintSpriteClick,
         onSelectSprite,
         onSpriteUpload,
-        onSurpriseSpriteClick,
         raised,
         selectedId,
         spriteFileInput,
@@ -125,10 +118,6 @@ const SpriteSelectorComponent = function (props) {
                         fileInput: spriteFileInput,
                         fileMultiple: true
                     }, {
-                        title: intl.formatMessage(messages.addSpriteFromSurprise),
-                        img: surpriseIcon,
-                        onClick: onSurpriseSpriteClick // TODO need real function for this
-                    }, {
                         title: intl.formatMessage(messages.addSpriteFromPaint),
                         img: paintIcon,
                         onClick: onPaintSpriteClick // TODO need real function for this
@@ -169,7 +158,6 @@ SpriteSelectorComponent.propTypes = {
     onPaintSpriteClick: PropTypes.func,
     onSelectSprite: PropTypes.func,
     onSpriteUpload: PropTypes.func,
-    onSurpriseSpriteClick: PropTypes.func,
     raised: PropTypes.bool,
     selectedId: PropTypes.string,
     spriteFileInput: PropTypes.func,

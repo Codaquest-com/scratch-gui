@@ -19,7 +19,7 @@
  * loaded any project into it. Hence waitForFirstProject() below.
  *
  * What this does:
- *   - SAVE. Mounts a floating "Sauvegarder dans Mes projets" button. On click,
+ *   - SAVE. There is no save button: AUTOSAVE below is the only way in. A save
  *     asks scratch-vm for an .sb3 zip blob and POSTs it to the LMS at
  *     https://codabox.codaquest.com/api/projects/scratch-save with
  *     credentials: 'include'. The .codaquest.com Supabase session cookie is
@@ -174,6 +174,15 @@
     return store && typeof store.getState === 'function' ? store : null;
   }
 
+  /** The child reads the status pill in the editor's language: French unless it is English. */
+  function t(fr, en) {
+    try {
+      var store = guiStore();
+      if (store && store.getState().locales.locale === 'en') return en;
+    } catch (e) { /* French */ }
+    return fr;
+  }
+
   function titleInput() {
     return document.querySelector('input[class*="title-field"]');
   }
@@ -298,23 +307,21 @@
 
   // ── Open flow ───────────────────────────────────────────────────────────
 
-  async function openProject(projectId, status, button) {
+  async function openProject(projectId, status) {
     // The canvas on screen is still the stock empty project until the load
     // lands. Saving it would not overwrite anything (currentProjectId is null
     // until then) but it would litter Mes projets with a blank duplicate, so
-    // hold the button rather than explaining that afterwards.
-    if (button) button.disabled = true;
+    // nothing is saved while `opening` holds.
     opening = true;
     try {
       await openProjectInner(projectId, status);
     } finally {
       opening = false;
-      if (button) button.disabled = false;
     }
   }
 
   async function openProjectInner(projectId, status) {
-    setStatus(status, 'Ouverture du projet…', 'progress');
+    setStatus(status, t('Ouverture du projet…', 'Opening the project…'), 'progress');
 
     var res;
     try {
@@ -324,22 +331,22 @@
         cache: 'no-store',
       });
     } catch (err) {
-      setStatus(status, 'Impossible de joindre Codaquest', 'error');
+      setStatus(status, t('Impossible de joindre Codaquest', 'Cannot reach Codaquest'), 'error');
       return;
     }
 
     if (res.status === 401) {
-      setStatus(status, 'Connecte-toi sur Codaquest pour ouvrir ce projet', 'error');
+      setStatus(status, t('Connecte-toi sur Codaquest pour ouvrir ce projet', 'Sign in to Codaquest to open this project'), 'error');
       return;
     }
     if (!res.ok) {
-      setStatus(status, 'Projet introuvable (' + res.status + ')', 'error');
+      setStatus(status, t('Projet introuvable', 'Project not found') + ' (' + res.status + ')', 'error');
       return;
     }
 
     var vm = await waitForVM();
     if (!vm) {
-      setStatus(status, 'Editeur pas encore prêt', 'error');
+      setStatus(status, t('Editeur pas encore prêt', 'Editor not ready yet'), 'error');
       return;
     }
 
@@ -351,7 +358,7 @@
       // leaves an empty canvas pointed at a real project: the next save then
       // overwrites the child's game with it.
       if (!(await waitForFirstProject(vm))) {
-        setStatus(status, 'Editeur pas prêt, recharge la page', 'error');
+        setStatus(status, t('Editeur pas prêt, recharge la page', 'Editor not ready, reload the page'), 'error');
         return;
       }
       loadingOurProject = true;
@@ -366,10 +373,10 @@
       setTarget(projectId);
       var title = res.headers.get('X-Codaquest-Project-Title');
       writeTitle(title ? decodeURIComponent(title) : '');
-      setStatus(status, 'Projet chargé', 'ok');
+      setStatus(status, t('Projet chargé', 'Project loaded'), 'ok');
       clearStatusLater(status);
     } catch (err) {
-      setStatus(status, 'Echec du chargement : ' + (err && err.message ? err.message : err), 'error');
+      setStatus(status, t('Echec du chargement : ', 'Loading failed: ') + (err && err.message ? err.message : err), 'error');
     }
   }
 
@@ -472,10 +479,10 @@
     var status = ui.status;
     var vm = window.ScratchVM;
     if (!vm) {
-      setStatus(status, 'Editeur pas encore prêt', 'error');
+      setStatus(status, t('Editeur pas encore prêt', 'Editor not ready yet'), 'error');
       return;
     }
-    if (trigger === 'manual') setStatus(status, 'Sauvegarde…', 'progress');
+    if (trigger === 'manual') setStatus(status, t('Sauvegarde…', 'Saving…'), 'progress');
     // Cleared BEFORE the snapshot, so an edit made while this save is uploading
     // sets it again and is saved by the next one instead of being lost.
     unsavedChanges = false;
@@ -501,14 +508,14 @@
       if (res.status === 401) {
         markUnsaved();
         autosaveSignedOut = true;
-        setStatus(status, 'Connecte-toi sur Codaquest pour sauvegarder', 'error');
+        setStatus(status, t('Connecte-toi sur Codaquest pour sauvegarder', 'Sign in to Codaquest to save'), 'error');
         // The user may have switched accounts, so this canvas no longer belongs
         // to whoever signs in next.
         setTarget(null);
         return;
       }
       if (!res.ok) {
-        var msg = 'Erreur ' + res.status;
+        var msg = t('Erreur ', 'Error ') + res.status;
         try { var body = await res.json(); if (body && body.error) msg = body.error; } catch (e) { /* ignore */ }
         throw new Error(msg);
       }
@@ -523,13 +530,13 @@
       // `forked: true` means the id we sent was not writable (deleted, someone
       // else's, not a Scratch project) and the work landed in a NEW project.
       // Say so, otherwise the child looks for their changes in the old one.
-      var message = json && json.forked ? 'Sauvegardé dans un nouveau projet'
-        : trigger === 'auto' ? 'Sauvegardé automatiquement'
-        : 'Sauvegardé dans Mes projets';
+      var message = json && json.forked ? t('Sauvegardé dans un nouveau projet', 'Saved in a new project')
+        : trigger === 'auto' ? t('Sauvegardé automatiquement', 'Saved automatically')
+        : t('Sauvegardé dans Mes projets', 'Saved in My projects');
       setStatus(status, message, 'ok');
     } catch (err) {
       markUnsaved();
-      setStatus(status, 'Echec : ' + (err && err.message ? err.message : err), 'error');
+      setStatus(status, t('Echec : ', 'Failed: ') + (err && err.message ? err.message : err), 'error');
     } finally {
       clearStatusLater(status);
     }
@@ -557,95 +564,64 @@
         requestSave(ui, 'auto');
       }
     });
+    // With no save button, coming back to the tab is the retry after a 401: the
+    // child has most likely just signed in to Codabox in another tab.
+    window.addEventListener('focus', function () {
+      if (!autosaveSignedOut) return;
+      autosaveSignedOut = false;
+      if (unsavedChanges) requestSave(ui, 'auto');
+    });
   }
 
-  // ── Download to the computer ────────────────────────────────────────────
-  // Replaces scratch-gui's File > "Save to your computer", which the fork hides
-  // together with the rest of the File menu.
+  // ── UI: status pill ─────────────────────────────────────────────────────
+  // The editor has no menu bar, so the pill floats over the top of the page,
+  // centred between the tabs and the stage buttons. It stays out of full screen.
 
-  function downloadFileName() {
-    var name = readTitle().replace(/[\\/:*?"<>|]+/g, ' ').trim();
-    return (name || 'Projet Scratch') + '.sb3';
-  }
-
-  async function downloadToComputer(status) {
-    var vm = window.ScratchVM;
-    if (!vm) {
-      setStatus(status, 'Editeur pas encore prêt', 'error');
-      return;
-    }
-    try {
-      var blob = await vm.saveProjectSb3();
-      var url = URL.createObjectURL(blob);
-      var link = document.createElement('a');
-      link.href = url;
-      link.download = downloadFileName();
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    } catch (err) {
-      setStatus(status, 'Téléchargement impossible', 'error');
-    }
-  }
-
-  // ── UI: floating button + status pill ───────────────────────────────────
-
-  function mountButton() {
-    if (document.getElementById('cq-save-button')) {
-      return {
-        button: document.getElementById('cq-save-button'),
-        status: document.getElementById('cq-save-status'),
-      };
-    }
+  function mountStatus() {
+    var existing = document.getElementById('cq-save-status');
+    if (existing) return { status: existing };
 
     var style = document.createElement('style');
     style.textContent =
-      '#cq-save-wrap{position:fixed;top:12px;right:12px;z-index:99999;display:flex;align-items:center;gap:8px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}' +
-      '#cq-save-button{background:#4D97FF;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.15);}' +
-      '#cq-save-button:hover:not(:disabled){background:#3a85ee;}' +
-      '#cq-save-button:disabled{opacity:.6;cursor:wait;}' +
-      '#cq-save-status{font-size:13px;padding:4px 10px;border-radius:6px;background:#fff;color:#333;box-shadow:0 1px 3px rgba(0,0,0,.1);max-width:260px;}' +
+      '#cq-save-wrap{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99999;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}' +
+      '#cq-save-status{font-size:13px;padding:4px 10px;border-radius:6px;background:#fff;color:#333;box-shadow:0 1px 3px rgba(0,0,0,.1);max-width:320px;}' +
       '#cq-save-status:empty{display:none;}' +
       '#cq-save-status[data-kind="ok"]{background:#e8f6ee;color:#1a7f37;}' +
       '#cq-save-status[data-kind="error"]{background:#fdecea;color:#a3261a;}' +
-      '#cq-save-status[data-kind="progress"]{background:#eef4ff;color:#1d4ed8;}' +
-      '#cq-download-button{display:flex;align-items:center;justify-content:center;width:36px;height:34px;background:rgba(255,255,255,.15);border:0;border-radius:8px;cursor:pointer;padding:0;}' +
-      '#cq-download-button:hover{background:rgba(255,255,255,.3);}';
+      '#cq-save-status[data-kind="progress"]{background:#eef4ff;color:#1d4ed8;}';
     document.head.appendChild(style);
 
     var wrap = document.createElement('div');
     wrap.id = 'cq-save-wrap';
     var status = document.createElement('div');
     status.id = 'cq-save-status';
-    var button = document.createElement('button');
-    button.id = 'cq-save-button';
-    button.type = 'button';
-    button.textContent = 'Sauvegarder dans Mes projets';
-    var ui = { button: button, status: status };
-    button.addEventListener('click', function () { requestSave(ui, 'manual'); });
-    var download = document.createElement('button');
-    download.id = 'cq-download-button';
-    download.type = 'button';
-    download.title = 'Télécharger sur mon ordinateur';
-    download.setAttribute('aria-label', 'Télécharger sur mon ordinateur');
-    download.innerHTML =
-      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" ' +
-      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>';
-    download.addEventListener('click', function () { downloadToComputer(status); });
     wrap.appendChild(status);
-    wrap.appendChild(button);
-    wrap.appendChild(download);
     document.body.appendChild(wrap);
-    return ui;
+    hideInFullScreen(wrap);
+    return { status: status };
+  }
+
+  function hideInFullScreen(node) {
+    var tries = 0;
+    var iv = setInterval(function () {
+      var store = guiStore();
+      if (!store && tries++ < 200) return;
+      clearInterval(iv);
+      if (!store || typeof store.subscribe !== 'function') return;
+      var sync = function () {
+        var mode = store.getState().scratchGui.mode;
+        node.style.display = mode && mode.isFullScreen ? 'none' : '';
+      };
+      store.subscribe(sync);
+      sync();
+    }, 100);
   }
 
   // ── Boot ────────────────────────────────────────────────────────────────
 
   function boot() {
     clearLegacyProjectId();
-    var ui = mountButton();
+    var ui = mountStatus();
     // Warms up the VM reference, attaches the watcher that drops our write
     // target the moment scratch-gui loads something else into the editor, and
     // starts autosaving the child's edits.
@@ -655,7 +631,7 @@
     });
     var projectId = requestedProjectId();
     if (projectId) {
-      openProject(projectId, ui.status, ui.button);
+      openProject(projectId, ui.status);
     }
     // Otherwise this session starts unattached, so the first save creates a new
     // project and later saves in the same session update it.

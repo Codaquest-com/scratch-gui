@@ -11,7 +11,6 @@ import {isRtl} from 'scratch-l10n';
 import backdropIcon from '../action-menu/icon--backdrop.svg';
 import fileUploadIcon from '../action-menu/icon--file-upload.svg';
 import paintIcon from '../action-menu/icon--paint.svg';
-import surpriseIcon from '../action-menu/icon--surprise.svg';
 import searchIcon from '../action-menu/icon--search.svg';
 
 const messages = defineMessages({
@@ -24,11 +23,6 @@ const messages = defineMessages({
         id: 'gui.stageSelector.addBackdropFromPaint',
         description: 'Button to add a stage in the target pane from paint',
         defaultMessage: 'Paint'
-    },
-    addBackdropFromSurprise: {
-        id: 'gui.stageSelector.addBackdropFromSurprise',
-        description: 'Button to add a random stage in the target pane',
-        defaultMessage: 'Surprise'
     },
     addBackdropFromFile: {
         id: 'gui.stageSelector.addBackdropFromFile',
@@ -54,7 +48,6 @@ const StageSelector = props => {
         onMouseEnter,
         onMouseLeave,
         onNewBackdropClick,
-        onSurpriseBackdropClick,
         onEmptyBackdropClick,
         ...componentProps
     } = props;
@@ -107,11 +100,6 @@ const StageSelector = props => {
                         fileInput: fileInputRef,
                         fileMultiple: true
                     }, {
-                        title: intl.formatMessage(messages.addBackdropFromSurprise),
-                        img: surpriseIcon,
-                        onClick: onSurpriseBackdropClick
-
-                    }, {
                         title: intl.formatMessage(messages.addBackdropFromPaint),
                         img: paintIcon,
                         onClick: onEmptyBackdropClick
@@ -142,7 +130,6 @@ StageSelector.propTypes = {
     onMouseEnter: PropTypes.func,
     onMouseLeave: PropTypes.func,
     onNewBackdropClick: PropTypes.func,
-    onSurpriseBackdropClick: PropTypes.func,
     raised: PropTypes.bool.isRequired,
     receivedBlocks: PropTypes.bool.isRequired,
     selected: PropTypes.bool.isRequired,

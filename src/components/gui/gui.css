@@ -11,6 +11,10 @@
     background-color: $ui-primary;
 }
 
+.body-wrapper-full {
+    height: 100%;
+}
+
 .body-wrapper * {
     box-sizing: border-box;
 }

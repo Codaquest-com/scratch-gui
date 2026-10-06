@@ -7,11 +7,6 @@ import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import log from '../lib/log.js';
 
-// The logo takes the child back to Codabox, never to scratch.mit.edu.
-const onClickLogo = () => {
-    window.location = 'https://codabox.codaquest.com/';
-};
-
 const handleTelemetryModalCancel = () => {
     log('User canceled telemetry modal');
 };
@@ -70,17 +65,15 @@ export default appTarget => {
                 onTelemetryModalOptIn={handleTelemetryModalOptIn}
                 onTelemetryModalOptOut={handleTelemetryModalOptOut}
             /> :
-            // Codaquest: no backpack, Share, project page or account.
-            // None of them work outside scratch.mit.edu, and they distract children.
-            // No colour mode either; the system contrast preference still applies.
-            // No File menu: cq-bridge.js puts a download button at the end of the bar.
-            // No title field: children name projects in Mes projets, and the field
-            // stopped renaming a project after its first save anyway.
+            // Codaquest: no menu bar at all. Codabox owns the language (it opens the
+            // editor with ?locale=), cq-bridge.js autosaves into Mes projets, and
+            // children name projects there. No backpack, Share or account either,
+            // since none of them work outside scratch.mit.edu.
             <WrappedGui
                 canChangeTheme={false}
                 canManageFiles={false}
                 canSave={false}
-                onClickLogo={onClickLogo}
+                showMenuBar={false}
             />,
         appTarget);
 };

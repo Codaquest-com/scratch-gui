@@ -23,6 +23,7 @@ import {injectExtensionBlockTheme, injectExtensionCategoryTheme} from '../lib/th
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
+import {projectUsesSound, setSoundMod} from '../reducers/cq-sound-mod';
 import {activateColorPicker} from '../reducers/color-picker';
 import {closeExtensionLibrary, openSoundRecorder, openConnectionModal} from '../reducers/modals';
 import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/custom-procedures';
@@ -58,6 +59,7 @@ class Blocks extends React.Component {
             'getToolboxXML',
             'handleCategorySelected',
             'handleConnectionModalStart',
+            'handleCqProjectLoaded',
             'handleDrop',
             'handleStatusButtonUpdate',
             'handleOpenSoundRecorder',
@@ -154,13 +156,19 @@ class Blocks extends React.Component {
             this.props.customProceduresVisible !== nextProps.customProceduresVisible ||
             this.props.locale !== nextProps.locale ||
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
-            this.props.stageSize !== nextProps.stageSize
+            this.props.stageSize !== nextProps.stageSize ||
+            this.props.cqSoundMod !== nextProps.cqSoundMod
         );
     }
     componentDidUpdate (prevProps) {
         // If any modals are open, call hideChaff to close z-indexed field editors
         if (this.props.anyModalVisible && !prevProps.anyModalVisible) {
             this.ScratchBlocks.hideChaff();
+        }
+
+        if (this.props.cqSoundMod !== prevProps.cqSoundMod) {
+            const toolboxXML = this.getToolboxXML();
+            if (toolboxXML) this.props.updateToolboxState(toolboxXML);
         }
 
         // Only rerender the toolbox when the blocks are visible and the xml is
@@ -276,6 +284,7 @@ class Blocks extends React.Component {
         this.props.vm.addListener('BLOCKSINFO_UPDATE', this.handleBlocksInfoUpdate);
         this.props.vm.addListener('PERIPHERAL_CONNECTED', this.handleStatusButtonUpdate);
         this.props.vm.addListener('PERIPHERAL_DISCONNECTED', this.handleStatusButtonUpdate);
+        this.props.vm.runtime.addListener('PROJECT_LOADED', this.handleCqProjectLoaded);
     }
     detachVM () {
         this.props.vm.removeListener('SCRIPT_GLOW_ON', this.onScriptGlowOn);
@@ -290,6 +299,11 @@ class Blocks extends React.Component {
         this.props.vm.removeListener('BLOCKSINFO_UPDATE', this.handleBlocksInfoUpdate);
         this.props.vm.removeListener('PERIPHERAL_CONNECTED', this.handleStatusButtonUpdate);
         this.props.vm.removeListener('PERIPHERAL_DISCONNECTED', this.handleStatusButtonUpdate);
+        this.props.vm.runtime.removeListener('PROJECT_LOADED', this.handleCqProjectLoaded);
+    }
+    handleCqProjectLoaded () {
+        // A loaded project that already plays sounds keeps the Sound blocks it needs.
+        this.props.onSetSoundMod(projectUsesSound(this.props.vm));
     }
 
     updateToolboxBlockValue (id, value) {
@@ -363,7 +377,8 @@ class Blocks extends React.Component {
                 targetCostumes[targetCostumes.length - 1].name,
                 stageCostumes[stageCostumes.length - 1].name,
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
-                getColorsForTheme(this.props.theme)
+                getColorsForTheme(this.props.theme),
+                this.props.cqSoundMod
             );
         } catch {
             return null;
@@ -550,7 +565,9 @@ class Blocks extends React.Component {
             anyModalVisible,
             canUseCloud,
             customProceduresVisible,
+            cqSoundMod,
             extensionLibraryVisible,
+            onSetSoundMod,
             options,
             stageSize,
             vm,
@@ -639,6 +656,8 @@ Blocks.propTypes = {
     stageSize: PropTypes.oneOf(Object.keys(STAGE_DISPLAY_SIZES)).isRequired,
     theme: PropTypes.oneOf(Object.keys(themeMap)),
     toolboxXML: PropTypes.string,
+    cqSoundMod: PropTypes.bool,
+    onSetSoundMod: PropTypes.func,
     updateMetrics: PropTypes.func,
     updateToolboxState: PropTypes.func,
     useCatBlocks: PropTypes.bool,
@@ -680,6 +699,7 @@ const mapStateToProps = state => ({
     locale: state.locales.locale,
     messages: state.locales.messages,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
+    cqSoundMod: state.scratchGui.cqSoundMod,
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
     useCatBlocks: isTimeTravel2020(state)
@@ -705,6 +725,7 @@ const mapDispatchToProps = dispatch => ({
     updateToolboxState: toolboxXML => {
         dispatch(updateToolbox(toolboxXML));
     },
+    onSetSoundMod: enabled => dispatch(setSoundMod(enabled)),
     updateMetrics: metrics => {
         dispatch(updateMetrics(metrics));
     }

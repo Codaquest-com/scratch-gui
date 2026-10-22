@@ -303,7 +303,9 @@ class Blocks extends React.Component {
     }
     handleCqProjectLoaded () {
         // A loaded project that already plays sounds keeps the Sound blocks it needs.
-        this.props.onSetSoundMod(projectUsesSound(this.props.vm));
+        // Never hide them on a load: the child may be on the Sounds tab, and a
+        // reload of their own project would take away the sounds they added.
+        if (projectUsesSound(this.props.vm)) this.props.onSetSoundMod(true);
     }
 
     updateToolboxBlockValue (id, value) {

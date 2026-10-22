@@ -150,15 +150,19 @@ GUI.defaultProps = {
 
 const mapStateToProps = state => {
     const loadingState = state.scratchGui.projectState.loadingState;
+    // Codaquest: with the Sounds tab hidden, a request for it shows the code
+    // rather than an empty editor.
+    const activeTabIndex = state.scratchGui.editorTab.activeTabIndex === SOUNDS_TAB_INDEX &&
+        !state.scratchGui.cqSoundMod ? BLOCKS_TAB_INDEX : state.scratchGui.editorTab.activeTabIndex;
     return {
-        activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+        activeTabIndex: activeTabIndex,
         alertsVisible: state.scratchGui.alerts.visible,
         backdropLibraryVisible: state.scratchGui.modals.backdropLibrary,
-        blocksTabVisible: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
+        blocksTabVisible: activeTabIndex === BLOCKS_TAB_INDEX,
         cardsVisible: state.scratchGui.cards.visible,
         connectionModalVisible: state.scratchGui.modals.connectionModal,
         costumeLibraryVisible: state.scratchGui.modals.costumeLibrary,
-        costumesTabVisible: state.scratchGui.editorTab.activeTabIndex === COSTUMES_TAB_INDEX,
+        costumesTabVisible: activeTabIndex === COSTUMES_TAB_INDEX,
         debugModalVisible: state.scratchGui.modals.debugModal,
         error: state.scratchGui.projectState.error,
         isError: getIsError(loadingState),
@@ -168,7 +172,7 @@ const mapStateToProps = state => {
         isShowingProject: getIsShowingProject(loadingState),
         loadingStateVisible: state.scratchGui.modals.loadingProject,
         projectId: state.scratchGui.projectState.projectId,
-        soundsTabVisible: state.scratchGui.editorTab.activeTabIndex === SOUNDS_TAB_INDEX,
+        soundsTabVisible: activeTabIndex === SOUNDS_TAB_INDEX,
         cqSoundMod: state.scratchGui.cqSoundMod,
         targetIsStage: (
             state.scratchGui.targets.stage &&

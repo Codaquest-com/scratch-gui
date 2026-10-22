@@ -35,6 +35,10 @@
  *     tab is hidden, so closing the tab loses at most the last few seconds.
  *     Needs `window.__SCRATCHGUI_STORE__` (src/lib/app-state-hoc.jsx) to clear
  *     scratch-gui's "leave this page?" prompt once the work is saved.
+ *   - REVIEW. When the page is loaded as `/?cq_review=<id>&cq_t=<token>`, which
+ *     is what a teacher or an admin gets when they open a child's project,
+ *     loads that project from its signed playback address and never saves.
+ *     See `reviewing`.
  *
  * Why OPEN has to exist: scratch-gui always boots on the stock empty project.
  * Saving worked end to end, but nothing could ever load a project back in, so a
@@ -55,6 +59,23 @@
   var LEGACY_STORAGE_KEY = 'cq_scratch_project_id';
   // Must match SCRATCH_EDITOR_PROJECT_PARAM in the LMS (lib/scratch-editor.ts).
   var PROJECT_PARAM = 'cq_project';
+  // Must match SCRATCH_EDITOR_REVIEW_PARAM and SCRATCH_EDITOR_TOKEN_PARAM in the LMS.
+  var REVIEW_PARAM = 'cq_review';
+  var TOKEN_PARAM = 'cq_t';
+
+  /**
+   * True when the editor shows somebody else's project for review: a teacher
+   * deciding on a child's exercise, or an admin opening a child's project.
+   *
+   * The adult must be able to look at the blocks, and even move them to try
+   * something, without any of it reaching a project. Opening on `cq_project`
+   * instead would hand the save lane a target: the server lets an admin write
+   * a child's project, so the first autosave would overwrite the child's work,
+   * and a teacher's would land in a new project of their own. So review loads
+   * through the playback token, never adopts a target, and every save path
+   * below returns before it starts.
+   */
+  var reviewing = false;
 
   /**
    * Which project the canvas on screen belongs to, and the single most important
@@ -116,6 +137,11 @@
       if (loadingOurProject) return;
       setTarget(null);
     });
+  }
+
+  function reviewUrl(projectId, token) {
+    return LMS_ORIGIN + '/api/projects/' + encodeURIComponent(projectId) +
+      '/scratch/play?t=' + encodeURIComponent(token);
   }
 
   function fileUrl(projectId) {
@@ -266,6 +292,18 @@
     }
   }
 
+  /** The project and playback token of a review link, or null. */
+  function requestedReview() {
+    try {
+      var params = new URL(window.location.href).searchParams;
+      var projectId = params.get(REVIEW_PARAM);
+      var token = params.get(TOKEN_PARAM);
+      return projectId && token ? { projectId: projectId, token: token } : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /**
    * Keep the URL naming whatever currentProjectId names, or nothing.
    *
@@ -308,26 +346,39 @@
   // ── Open flow ───────────────────────────────────────────────────────────
 
   async function openProject(projectId, status) {
+    await openWith(projectId, status, fileUrl(projectId), 'include');
+  }
+
+  /**
+   * Load a child's project for review. The playback address is signed and
+   * answers any origin, so it needs no cookie, which is also what lets a
+   * teacher who is not an admin read it.
+   */
+  async function openReview(review, status) {
+    await openWith(review.projectId, status, reviewUrl(review.projectId, review.token), 'omit');
+  }
+
+  async function openWith(projectId, status, url, credentials) {
     // The canvas on screen is still the stock empty project until the load
     // lands. Saving it would not overwrite anything (currentProjectId is null
     // until then) but it would litter Mes projets with a blank duplicate, so
     // nothing is saved while `opening` holds.
     opening = true;
     try {
-      await openProjectInner(projectId, status);
+      await openProjectInner(projectId, status, url, credentials);
     } finally {
       opening = false;
     }
   }
 
-  async function openProjectInner(projectId, status) {
+  async function openProjectInner(projectId, status, url, credentials) {
     setStatus(status, t('Ouverture du projet…', 'Opening the project…'), 'progress');
 
     var res;
     try {
-      res = await fetch(fileUrl(projectId), {
+      res = await fetch(url, {
         method: 'GET',
-        credentials: 'include',
+        credentials: credentials,
         cache: 'no-store',
       });
     } catch (err) {
@@ -340,7 +391,12 @@
       return;
     }
     if (!res.ok) {
-      setStatus(status, t('Projet introuvable', 'Project not found') + ' (' + res.status + ')', 'error');
+      // The playback token lives ten minutes, so a review tab reloaded later
+      // asks for a fresh link rather than claiming the project is gone.
+      var missing = reviewing
+        ? t('Lien expiré, rouvre le projet depuis Codabox', 'Link expired, open the project again from Codabox')
+        : t('Projet introuvable', 'Project not found');
+      setStatus(status, missing + ' (' + res.status + ')', 'error');
       return;
     }
 
@@ -366,6 +422,11 @@
         await vm.loadProject(buffer);
       } finally {
         loadingOurProject = false;
+      }
+      if (reviewing) {
+        // Stays on screen, so the adult never takes a change for a saved one.
+        setStatus(status, t('Lecture seule : rien n\'est sauvegardé', 'Read only: nothing is saved'), 'review');
+        return;
       }
       // Only adopt the id once the project is actually IN the editor. Adopting
       // it earlier would point the next save at a project the child never got
@@ -447,7 +508,7 @@
 
   function scheduleAutosave(ui) {
     clearTimeout(autosaveTimer);
-    if (autosaveSignedOut || opening || !unsavedChanges) return;
+    if (reviewing || autosaveSignedOut || opening || !unsavedChanges) return;
     var ceiling = unsavedSince + AUTOSAVE_MAX_WAIT_MS - Date.now();
     var delay = Math.max(0, Math.min(AUTOSAVE_DELAY_MS, ceiling));
     autosaveTimer = setTimeout(function () { requestSave(ui, 'auto'); }, delay);
@@ -460,7 +521,7 @@
    */
   function requestSave(ui, trigger) {
     clearTimeout(autosaveTimer);
-    if (opening) return;
+    if (reviewing || opening) return;
     if (saving) {
       if (saveQueued !== 'manual') saveQueued = trigger;
       return;
@@ -552,6 +613,11 @@
     if (!vm || typeof vm.on !== 'function') return;
     vm.on('PROJECT_CHANGED', function () {
       if (opening) return;
+      // Nothing in review is ever saved, so leaving must not ask about it.
+      if (reviewing) {
+        markSavedInGui();
+        return;
+      }
       markUnsaved();
       scheduleAutosave(ui);
     });
@@ -588,7 +654,8 @@
       '#cq-save-status:empty{display:none;}' +
       '#cq-save-status[data-kind="ok"]{background:#e8f6ee;color:#1a7f37;}' +
       '#cq-save-status[data-kind="error"]{background:#fdecea;color:#a3261a;}' +
-      '#cq-save-status[data-kind="progress"]{background:#eef4ff;color:#1d4ed8;}';
+      '#cq-save-status[data-kind="progress"]{background:#eef4ff;color:#1d4ed8;}' +
+      '#cq-save-status[data-kind="review"]{background:#fff4d6;color:#7a4b00;}';
     document.head.appendChild(style);
 
     var wrap = document.createElement('div');
@@ -629,6 +696,12 @@
       forgetTargetOnForeignLoad(vm);
       watchForChanges(vm, ui);
     });
+    var review = requestedReview();
+    if (review) {
+      reviewing = true;
+      openReview(review, ui.status);
+      return;
+    }
     var projectId = requestedProjectId();
     if (projectId) {
       openProject(projectId, ui.status);

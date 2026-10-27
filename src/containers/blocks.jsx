@@ -157,7 +157,8 @@ class Blocks extends React.Component {
             this.props.locale !== nextProps.locale ||
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
             this.props.stageSize !== nextProps.stageSize ||
-            this.props.cqSoundMod !== nextProps.cqSoundMod
+            this.props.cqSoundMod !== nextProps.cqSoundMod ||
+            this.props.cqToolboxCategories !== nextProps.cqToolboxCategories
         );
     }
     componentDidUpdate (prevProps) {
@@ -166,7 +167,8 @@ class Blocks extends React.Component {
             this.ScratchBlocks.hideChaff();
         }
 
-        if (this.props.cqSoundMod !== prevProps.cqSoundMod) {
+        if (this.props.cqSoundMod !== prevProps.cqSoundMod ||
+            this.props.cqToolboxCategories !== prevProps.cqToolboxCategories) {
             const toolboxXML = this.getToolboxXML();
             if (toolboxXML) this.props.updateToolboxState(toolboxXML);
         }
@@ -380,7 +382,8 @@ class Blocks extends React.Component {
                 stageCostumes[stageCostumes.length - 1].name,
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
                 getColorsForTheme(this.props.theme),
-                this.props.cqSoundMod
+                this.props.cqSoundMod,
+                this.props.cqToolboxCategories
             );
         } catch {
             return null;
@@ -568,6 +571,7 @@ class Blocks extends React.Component {
             canUseCloud,
             customProceduresVisible,
             cqSoundMod,
+            cqToolboxCategories,
             extensionLibraryVisible,
             onSetSoundMod,
             options,
@@ -659,6 +663,7 @@ Blocks.propTypes = {
     theme: PropTypes.oneOf(Object.keys(themeMap)),
     toolboxXML: PropTypes.string,
     cqSoundMod: PropTypes.bool,
+    cqToolboxCategories: PropTypes.arrayOf(PropTypes.string),
     onSetSoundMod: PropTypes.func,
     updateMetrics: PropTypes.func,
     updateToolboxState: PropTypes.func,
@@ -702,6 +707,7 @@ const mapStateToProps = state => ({
     messages: state.locales.messages,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
     cqSoundMod: state.scratchGui.cqSoundMod,
+    cqToolboxCategories: state.scratchGui.cqToolboxCategories,
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
     useCatBlocks: isTimeTravel2020(state)

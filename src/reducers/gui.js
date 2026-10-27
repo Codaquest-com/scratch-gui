@@ -6,6 +6,7 @@ import colorPickerReducer, {colorPickerInitialState} from './color-picker';
 import connectionModalReducer, {connectionModalInitialState} from './connection-modal';
 import customProceduresReducer, {customProceduresInitialState} from './custom-procedures';
 import cqSoundModReducer, {cqSoundModInitialState} from './cq-sound-mod';
+import cqToolboxCategoriesReducer, {cqToolboxCategoriesInitialState} from './cq-toolbox-categories';
 import blockDragReducer, {blockDragInitialState} from './block-drag';
 import editorTabReducer, {editorTabInitialState} from './editor-tab';
 import hoveredTargetReducer, {hoveredTargetInitialState} from './hovered-target';
@@ -44,6 +45,7 @@ const guiInitialState = {
     connectionModal: connectionModalInitialState,
     customProcedures: customProceduresInitialState,
     cqSoundMod: cqSoundModInitialState,
+    cqToolboxCategories: cqToolboxCategoriesInitialState,
     editorTab: editorTabInitialState,
     mode: modeInitialState,
     hoveredTarget: hoveredTargetInitialState,
@@ -146,6 +148,7 @@ const guiReducer = combineReducers({
     connectionModal: connectionModalReducer,
     customProcedures: customProceduresReducer,
     cqSoundMod: cqSoundModReducer,
+    cqToolboxCategories: cqToolboxCategoriesReducer,
     editorTab: editorTabReducer,
     mode: modeReducer,
     hoveredTarget: hoveredTargetReducer,

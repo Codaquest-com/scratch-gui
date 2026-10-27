@@ -705,10 +705,12 @@ const xmlClose = '</xml>';
  * @param {?string} soundName -  The name of the default selected sound dropdown.
  * @param {?object} colors - The colors for the theme.
  * @param {?boolean} showSound - Codaquest: whether the child has added the Sound extension.
+ * @param {?Array.<string>} shownCategories - Codaquest: the core categories an exercise shows, or null for all.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
 const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categoriesXML = [],
-    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, showSound = false) {
+    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, showSound = false,
+    shownCategories = null) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
 
@@ -739,16 +741,23 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
     // 'procedures' out of categoriesXML still keeps it from showing up below.
     moveCategory('procedures');
 
-    const everything = [
-        xmlOpen,
-        motionXML, gap,
-        looksXML, gap,
-        eventsXML, gap,
-        controlXML, gap,
-        sensingXML, gap,
-        operatorsXML, gap,
-        variablesXML
-    ];
+    // Codaquest: an exercise shows only the categories its level uses (see
+    // reducers/cq-toolbox-categories.js). Null shows them all.
+    const categories = [
+        ['motion', motionXML],
+        ['looks', looksXML],
+        ['events', eventsXML],
+        ['control', controlXML],
+        ['sensing', sensingXML],
+        ['operators', operatorsXML],
+        ['variables', variablesXML]
+    ].filter(([id]) => !shownCategories || shownCategories.indexOf(id) >= 0);
+
+    const everything = [xmlOpen];
+    categories.forEach(([, xml], index) => {
+        if (index > 0) everything.push(gap);
+        everything.push(xml);
+    });
 
     // Codaquest: Sound is offered as an extension, so it sits with them at the bottom.
     if (showSound) everything.push(gap, soundXML);

@@ -299,6 +299,23 @@
     }
   }
 
+  // ── Toolbox ─────────────────────────────────────────────────────────────
+
+  // Must match SET_TOOLBOX_CATEGORIES in src/reducers/cq-toolbox-categories.js.
+  var SET_TOOLBOX_CATEGORIES = 'scratch-gui/cq-toolbox-categories/SET_TOOLBOX_CATEGORIES';
+
+  /**
+   * Keeps only the block categories the exercise's level uses, so a child on
+   * the first level picks from a short list. Codabox answers null, or nothing
+   * on an older deploy, for the whole toolbox, which is what the editor shows
+   * already.
+   */
+  function showLevelBlocks(categories) {
+    if (!Array.isArray(categories)) return;
+    var store = guiStore();
+    if (store) store.dispatch({ type: SET_TOOLBOX_CATEGORIES, categories: categories });
+  }
+
   /** The code area exists once the GUI has rendered. */
   function waitForCodeArea() {
     return new Promise(function (resolve) {
@@ -318,6 +335,7 @@
     var exercise = await fetchExercise(id);
     if (!exercise) return;
     await waitForCodeArea();
+    showLevelBlocks(exercise.categories);
     mount(id, exercise);
   }
 

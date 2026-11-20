@@ -137,11 +137,14 @@
   function mount(id, exercise) {
     var steps = exercise.steps;
     var total = steps.length;
+    var start = Math.min(Math.max(readStep(id), 0), total);
     var state = {
       // `total` means every step is done.
-      step: Math.min(Math.max(readStep(id), 0), total),
+      step: start,
       showGoal: total === 0,
-      folded: false,
+      // A project whose steps are all done opens with the strip alone, so the
+      // code area is the child's again.
+      folded: total > 0 && start >= total,
     };
 
     var style = document.createElement('style');
@@ -233,6 +236,14 @@
       bubble.appendChild(text);
       var actions = el('div', 'cq-actions');
       actions.appendChild(button('cq-ghost', t('Revoir les étapes', 'Go over the steps again'), function () { go(0); }));
+      actions.appendChild(el('span', 'cq-grow'));
+      // The last "J'ai fini" left this bubble over the top of the child's
+      // script with no way to put it away but the small fold button (student
+      // walkthrough, 20 Nov 2026). "OK" folds it to the strip.
+      actions.appendChild(button('cq-primary', 'OK', function () {
+        state.folded = true;
+        render();
+      }));
       bubble.appendChild(actions);
       return bubble;
     }
